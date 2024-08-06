@@ -1,6 +1,6 @@
 {
   "name": "medusa-payment-tosspayments",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "TossPayments payment pluging for medusa",
   "author": "sunghyun",
   "license": "MIT",

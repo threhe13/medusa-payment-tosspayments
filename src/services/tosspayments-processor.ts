@@ -26,7 +26,7 @@ class TossPaymentsProcessor extends AbstractPaymentProcessor {
     | Record<string, unknown>
     | undefined;
 
-  protected tosspayments_: TossPaymentsBase;
+  private tosspayments_: TossPaymentsBase;
 
   constructor(
     container: Record<string, unknown>,
@@ -126,7 +126,7 @@ class TossPaymentsProcessor extends AbstractPaymentProcessor {
       );
     }
 
-    const { resource_id } = context;
+    const { resource_id, amount } = context;
 
     const paymentIntent = this.tosspayments_.retrieve();
     if (this.options_.debug) {
@@ -135,22 +135,38 @@ class TossPaymentsProcessor extends AbstractPaymentProcessor {
         JSON.stringify(paymentIntent, null, 2)
       );
     }
-    if (!paymentIntent || paymentIntent.id !== resource_id) {
-      const reInitiatePayment = await this.initiatePayment(context);
-      if (isPaymentProcessorError(reInitiatePayment)) {
-        return this.buildError(
-          "Error in updatePayment during the re-initiate of the new payment for new customer",
-          reInitiatePayment
-        );
-      }
-      return reInitiatePayment;
-    }
-
-    const updatedPaymentIntent = this.tosspayments_.update(
-      context.paymentSessionData
-    );
 
     try {
+      if (!paymentIntent || paymentIntent.id !== resource_id) {
+        const reInitiatePayment = await this.initiatePayment(context);
+        if (isPaymentProcessorError(reInitiatePayment)) {
+          return this.buildError(
+            "Error in updatePayment during the re-initiate of the new payment for new customer",
+            reInitiatePayment
+          );
+        }
+        return reInitiatePayment;
+      }
+
+      if (!paymentIntent.email || paymentIntent.amount !== amount) {
+        const updatedPaymentIntent = this.tosspayments_.update({
+          email: context.email,
+          amount: context.amount,
+        });
+
+        return { session_data: updatedPaymentIntent };
+      }
+
+      const updatedPaymentIntent = this.tosspayments_.update(
+        context.paymentSessionData
+      );
+      if (this.options_.debug) {
+        console.info(
+          "TOSSPAYMENTS_PAYMENT_DEBUG: updated paymentIntent in updatePayment",
+          JSON.stringify(updatedPaymentIntent, null, 2)
+        );
+      }
+
       return { session_data: updatedPaymentIntent };
     } catch (error) {
       return this.buildError(
@@ -184,7 +200,6 @@ class TossPaymentsProcessor extends AbstractPaymentProcessor {
 
     try {
       const paymentIntent = this.tosspayments_.retrieve();
-
       if (data.amount !== paymentIntent.amount) {
         throw new MedusaError(
           MedusaError.Types.INVALID_DATA,
@@ -432,6 +447,8 @@ class TossPaymentsProcessor extends AbstractPaymentProcessor {
    * This method is used to capture the payment amount of an order. This is typically triggered manually by the store operator from the admin.
    * This method is also used for capturing payments of a swap of an order, or when a request is sent to the Capture Payment API Route.
    * You can utilize this method to interact with the third-party provider and perform any actions necessary to capture the payment.
+   *
+   * 토스페이먼츠에서는 결제 승인과 동시에 매입이 일어나므로 사용하지 않는다.
    *
    * @param paymentSessionData
    */

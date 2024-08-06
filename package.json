@@ -1,12 +1,12 @@
 {
   "name": "medusa-payment-tosspayments",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "TossPayments payment pluging for medusa",
   "author": "sunghyun",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/threhe13/medusa-payment-tosspayment"
+    "url": "https://github.com/threhe13/medusa-payment-tosspayment.git"
   },
   "keywords": [
     "medusa-plugin",

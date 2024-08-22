@@ -9,6 +9,8 @@ class TossPaymentsBase {
   protected status: PaymentStatus;
   protected paymentIntent: Record<string, unknown>;
 
+  private readonly baseUrl = "/v1/payments";
+
   constructor(secretKey: unknown, version: unknown) {
     if (typeof secretKey !== "string" || typeof version !== "string") {
       throw new Error("Failed to detect secret key or api version");
@@ -16,7 +18,7 @@ class TossPaymentsBase {
 
     if (version !== "2022-11-16") {
       throw new Error(
-        "TossPayments api version is too low, only support version 2022-11-16"
+        "TossPayments api version is different, only support version 2022-11-16"
       );
     }
 
@@ -26,23 +28,6 @@ class TossPaymentsBase {
         Authorization: `Basic ${secretKey}`,
       },
     });
-  }
-
-  /**
-   * 토스페이먼츠 주문 기록 확인
-   *
-   * @param id
-   */
-  private createInquiryUrl(id: string): string {
-    let baseInquiryUrl = "/v1/payments/";
-    if (id === this.paymentIntent.paymentKey) {
-      baseInquiryUrl += id;
-    } else if (id === this.paymentIntent.orderId) {
-      baseInquiryUrl += `orders/${id}`;
-    } else {
-      return "";
-    }
-    return baseInquiryUrl;
   }
 
   getStatus() {
@@ -84,7 +69,7 @@ class TossPaymentsBase {
    * paymentKey에 해당하는 결제를 검증하고 승인합니다.
    * 결제 인증이 유효한 10분 안에 상점에서 결제 승인 API를 호출하지 않으면 해당 결제는 만료됩니다.
    *
-   * @param data
+   * @param data<{paymentKey: string, orderId: string, amount: number}>
    * @returns
    */
   async confirm(data: {
@@ -94,7 +79,7 @@ class TossPaymentsBase {
   }): Promise<Payment | TossPaymentsErrorType> {
     try {
       const paymentResult = await this.tosspaymentsApi.post(
-        "/v1/payments/confirm",
+        `${this.baseUrl}/confirm`,
         {
           paymentKey: data.paymentKey,
           orderId: data.orderId,
@@ -116,16 +101,19 @@ class TossPaymentsBase {
   }
 
   /**
-   * 승인된 결제를 paymentKey 또는 orderId로 조회합니다.
+   * 승인된 결제를 paymentKey로 조회합니다.
    * paymentKey는 SDK를 사용해 결제할 때 발급되는 고유한 키 값이며, orderId는 SDK로 결제를 요청할 때 가맹점에서 만들어서 사용한 값입니다.
    * 결제가 최종 승인된 후 돌아오는 Payment 객체에 담겨있습니다.
    *
-   * @param id
+   * @param paymentKey
    */
-  async inquiry(id: string): Promise<Payment | TossPaymentsErrorType> {
-    const url = this.createInquiryUrl(id);
+  async inquiry(paymentKey: string): Promise<Payment | TossPaymentsErrorType> {
+    const url = `${this.baseUrl}/${paymentKey}`;
     try {
-      if (!url) throw new Error("Can not find any id");
+      if (!paymentKey)
+        throw new Error(
+          "[Tosspayments Core] Can not find paymentKey in inquiry"
+        );
 
       const paymentResult = await this.tosspaymentsApi.get(url);
       return paymentResult.data;
@@ -155,6 +143,11 @@ class TossPaymentsBase {
     amount?: number
   ): Promise<Payment | TossPaymentsErrorType> {
     try {
+      if (!paymentKey)
+        throw new Error(
+          "[Tosspayments Core] Can not find paymentKey in cancel"
+        );
+
       const requestOption = {
         cancelReason: reason,
       };
@@ -164,7 +157,7 @@ class TossPaymentsBase {
       }
 
       const paymentResult = await this.tosspaymentsApi.post(
-        `/v1/payments/${paymentKey}/cancel`,
+        `${this.baseUrl}/${paymentKey}/cancel`,
         requestOption,
         {
           headers: {

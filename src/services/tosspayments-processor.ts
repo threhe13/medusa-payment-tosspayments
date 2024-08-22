@@ -388,8 +388,8 @@ class TossPaymentsProcessor extends AbstractPaymentProcessor {
   /**
    * ADMIN PANEL
    * - refundPayment
-   * - capturePayment
    * - cancelPayment
+   * - capturePayment
    * - deletePayment
    */
 
@@ -428,7 +428,59 @@ class TossPaymentsProcessor extends AbstractPaymentProcessor {
 
       const paymentResult = (await this.tosspayments_.cancel(
         paymentKey as string,
-        ""
+        "Refund",
+        refundAmount
+      )) as Payment;
+      if (this.options_.debug) {
+        console.info(
+          "TOSSPAYMENTS_PAYMENT_DEBUG: Refund payment in refundPayment",
+          JSON.stringify(paymentResult, null, 2)
+        );
+      }
+
+      return paymentSessionData;
+    } catch (error) {
+      return this.buildError("Error in refundPayment", error);
+    }
+  }
+
+  /**
+   * This method is used to cancel an order’s payment. This method is typically triggered by one of the following situations:
+   * 1. Before an order is placed and after the payment is authorized,
+   *    an inventory check is done on products to ensure that products are still available for purchase.
+   *    If the inventory check fails for any of the products, the payment is canceled.
+   * 2. If the store operator cancels the order from the admin.
+   * 3. When the payment of an order's swap is canceled.
+   * You can utilize this method to interact with the third-party provider and perform any actions necessary to cancel the payment.
+   *
+   * @param paymentSessionData
+   * @returns
+   */
+  async cancelPayment(
+    paymentSessionData: Record<string, unknown>
+  ): Promise<
+    PaymentProcessorError | PaymentProcessorSessionResponse["session_data"]
+  > {
+    if (this.options_.debug) {
+      console.info(
+        "TOSSPAYMENTS_PAYMENT_DEBUG: cancelPayment",
+        JSON.stringify({ paymentSessionData }, null, 2)
+      );
+    }
+
+    try {
+      const { paymentKey } = paymentSessionData;
+
+      if (!paymentKey) {
+        throw new MedusaError(
+          MedusaError.Types.INVALID_ARGUMENT,
+          "Can not find necessary keys in refundPayment"
+        );
+      }
+
+      const paymentResult = (await this.tosspayments_.cancel(
+        paymentKey as string,
+        "Cancel"
       )) as Payment;
       if (this.options_.debug) {
         console.info(
@@ -453,26 +505,6 @@ class TossPaymentsProcessor extends AbstractPaymentProcessor {
    * @param paymentSessionData
    */
   async capturePayment(
-    paymentSessionData: Record<string, unknown>
-  ): Promise<
-    PaymentProcessorError | PaymentProcessorSessionResponse["session_data"]
-  > {
-    return paymentSessionData;
-  }
-
-  /**
-   * This method is used to cancel an order’s payment. This method is typically triggered by one of the following situations:
-   * 1. Before an order is placed and after the payment is authorized,
-   *    an inventory check is done on products to ensure that products are still available for purchase.
-   *    If the inventory check fails for any of the products, the payment is canceled.
-   * 2. If the store operator cancels the order from the admin.
-   * 3. When the payment of an order's swap is canceled.
-   * You can utilize this method to interact with the third-party provider and perform any actions necessary to cancel the payment.
-   *
-   * @param paymentSessionData
-   * @returns
-   */
-  async cancelPayment(
     paymentSessionData: Record<string, unknown>
   ): Promise<
     PaymentProcessorError | PaymentProcessorSessionResponse["session_data"]

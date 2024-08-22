@@ -24,7 +24,7 @@
 ### ⚠️ Under Development
 
 - 결제위젯과 브랜드페이는 아직 지원하지 않습니다.
-- 토스페이먼츠 API 버전은 2022-11-26만 지원하고 있습니다.
+- 토스페이먼츠 API 버전은 2022-11-16만 지원하고 있습니다.
 - 현재 카드 결제 방식만 지원하고 있습니다. (아래 표 참고)
 
 | 결제 방식 | 카드 | 가상계좌 | 계좌이체 | 휴대폰 결제 | 상품권 | 해외 간편결제 |
@@ -49,10 +49,14 @@ npm install medusa-payment-tosspayments --save
 ```env
 TOSSPAYMENTS_DEBUG=true # 디버깅용 로그가 필요하지 않는 경우 false로 설정해주시면 됩니다.
 TOSSPAYMENTS_KEY=<API 개발 연동 시크릿 키>
-TOSSPAYMENTS_VERSION=2022-11-26
+TOSSPAYMENTS_VERSION=2022-11-16 # 2024-08-22 현재 가장 최신 API 버전
 ```
 
-3. `medusa-config.js`의 plugins에 아래와 같이 설치한 `medusa-payment-tosspayments`를 추가해주세요.
+> [!WARNING]
+>
+> `TOSSPAYMENTS_KEY`에는 [Tosspayments Docs](https://docs.tosspayments.com/reference/using-api/authorization) 에서 base64로 인코딩된 키가 필요합니다.
+
+3. `medusa-config.js`에 있는 plugins 항목에 아래와 같이 설치한 `medusa-payment-tosspayments`를 추가해주세요.
 
 ```js
 const plugins = [
